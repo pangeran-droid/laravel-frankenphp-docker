@@ -25,7 +25,7 @@
 }
 
 :8000 {
-    root * /path/your-app/public
+    root * public
     encode zstd gzip
     php_server
 }

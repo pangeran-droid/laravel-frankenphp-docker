@@ -18,8 +18,8 @@ podman run -d \
   -v ./storage:/app/storage:Z \
   -v ./docker/php/Caddyfile:/etc/caddy/Caddyfile:Z \
   -v ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-custom.ini:Z \
-  -v caddy_data_your:/data \
-  -v caddy_config_your:/config \
+  -v caddy_data_your-app:/data \
+  -v caddy_config_your-app:/config \
   your-app-image:latest
 
 echo "Finished!"

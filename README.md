@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  This repo uses a <b>Pre-built Frontend Assets</b> approach: the frontend build output (Vite/Tailwind) is <i>committed</i> to the repository, so the production server needs neither Node.js nor <code>npm run build</code>.
+  This template expects pre-built frontend assets: commit <code>public/build</code> with your Laravel application so the production server does not need Node.js.
 </p>
 
 ---
@@ -36,14 +36,14 @@
 | PHP | 8.4 (Alpine Linux) |
 | Web server & app server | FrankenPHP (Caddy-based) |
 | Frontend assets | Pre-built (`public/build`) |
-| Container tool | Podman / Docker (`run.sh` or `docker-compose.yaml`) |
+| Container tool | Podman (`scripts/run.sh`) or Docker Compose (`docker-compose.yaml`) |
 | PHP extensions | `pdo_mysql`, `mbstring`, `exif`, `pcntl`, `bcmath`, `gd`, `zip`, `intl`, `opcache`, `redis` |
 
 ---
 
 ## Directory Structure
 
-The files in this repo go in the **root of your Laravel project**.
+This repository is a set of deployment files, not a complete Laravel application. Copy its files into the **root of an existing Laravel project** (the directory containing `artisan`, `composer.json`, and `public/`). Run the commands below from that project root.
 
 ```text
 .
@@ -54,8 +54,9 @@ The files in this repo go in the **root of your Laravel project**.
 │       └── php.ini           # PHP & OPcache customization (production)
 ├── php/
 │   └── Caddyfile             # Caddy for development (Octane worker mode)
-├── dev.sh                    # Local development script (Vite + Octane)
-├── run.sh                    # Build & deploy script using Podman
+├── scripts/
+│   ├── dev.sh                # Local development script (Vite + Octane)
+│   └── run.sh                # Build & deploy script using Podman
 ├── docker-compose.yaml       # Alternative deployment with Docker Compose
 └── README.md
 ```
@@ -72,10 +73,11 @@ public/
 
 ## Prerequisites
 
-* A Laravel project with [Laravel Octane](https://laravel.com/docs/octane) (for development mode).
-* Podman or Docker (for production).
-* Node.js and npm **only** on the development machine.
-* `public/build` must be populated and committed (run `npm run build` before committing).
+* An existing Laravel project with PHP and Composer available locally.
+* [Laravel Octane](https://laravel.com/docs/octane) and FrankenPHP server support for local development.
+* Podman for `scripts/run.sh`, or Docker with the Docker Compose plugin for the Compose option.
+* Node.js and npm on the development machine.
+* A populated `public/build` directory committed with the application for production.
 
 ---
 
@@ -83,46 +85,50 @@ public/
 
 ```bash
 cp .env.example .env
+composer install
 php artisan key:generate
+npm install
+npm run build
 ```
 
-Adjust the contents of `.env` (database, Redis, etc.) to your needs.
+Configure `.env` for your database, Redis, and other services. For local development, install Octane if it is not already installed, then install its FrankenPHP server support and generate the worker file:
+
+```bash
+composer require laravel/octane
+php artisan octane:install --server=frankenphp
+```
+
+If Octane is already installed, do not repeat `composer require`; run the Octane install command as needed to create `public/frankenphp-worker.php`.
 
 ---
 
 ## Usage
 
-### Option A: Local Development (`dev.sh`)
+### Option A: Local Development
 
 Runs Vite (hot reload) and Octane with FrankenPHP worker mode on port **8000**.
 
 ```bash
-chmod +x dev.sh   # if not already executable
-./dev.sh
+./scripts/dev.sh
 ```
 
-This script runs `npm run dev`, then:
+The script starts Vite and Laravel Octane with FrankenPHP on port **8000**. Keep the script running while developing; stop it with `Ctrl+C`.
+
+### Option B: Production with Podman
+
+Run this from the Laravel project root on a Linux host with Podman installed. The host does not need Node.js, but `public/build` must already exist in the project.
 
 ```bash
-php artisan octane:start --server=frankenphp --caddyfile=php/Caddyfile --host=0.0.0.0 --port=8000 --watch
-```
-
-> **Note:** in `php/Caddyfile`, change `root * /path/your-app/public` to match your project's location.
-
-### Option B: Production with Podman (`run.sh`)
-
-Suitable for deploying to a VPS without Node.js.
-
-```bash
-chmod +x run.sh   # if not already executable
-./run.sh
+./scripts/run.sh
 ```
 
 This script will:
 
-1. Stop and remove the old container (`your-app`), if it exists.
+1. Stop and remove the existing container named `your-app`, if present.
 2. Build the image `your-app-image:latest` from `docker/php/Dockerfile`.
-3. Run the new container with `--network host`, making the application available on port **8000**.
+3. Run the new container with host networking, making the application available on port **8000**.
+
+The script replaces the existing `your-app` container, so expect a brief interruption during deployment. Change the placeholder container/image names before using this template for multiple projects.
 
 ### Option C: Docker Compose
 
@@ -130,7 +136,7 @@ This script will:
 docker compose up -d --build
 ```
 
-The configuration is equivalent to `run.sh` (container `your-app`, `network_mode: host`, port 8000).
+The Compose configuration uses container name `your-app` and host networking. It is intended for Linux; host networking behaves differently or may be unavailable with Docker Desktop. The `.env` file must exist before starting Compose.
 
 ---
 
@@ -142,7 +148,7 @@ The configuration is equivalent to `run.sh` (container `your-app`, `network_mode
 | Mode | Octane worker (2 workers) | Classic FrankenPHP (`php_server`) |
 | Caddyfile | `php/Caddyfile` | `docker/php/Caddyfile` |
 | PHP configuration | `php_ini` block in `php/Caddyfile` | `docker/php/php.ini` |
-| Document root | `/path/your-app/public` (change manually) | `/app/public` |
+| Document root | `public` (relative to project root) | `/app/public` |
 
 PHP settings used in both modes:
 
@@ -155,28 +161,29 @@ PHP settings used in both modes:
 
 Replace the `your-app` placeholder so it doesn't conflict with other projects:
 
-* `run.sh`: container name, image name, and the volumes `caddy_data_your` / `caddy_config_your`
-* `docker-compose.yaml`: `container_name` and the same volume names
-* `php/Caddyfile`: the `/path/your-app/public` path
+* `scripts/run.sh`: container name and image name
+* `docker-compose.yaml`: `container_name`
+* `docker-compose.yaml` and `scripts/run.sh`: Caddy data/config volume names, if you want to keep each project's Caddy state separate
 
 ### Volumes used
 
 | Volume | Purpose |
 |---|---|
-| `.:/app` | Project source code |
+| `.:/app` | Project source code (bind-mounted from the host) |
 | `/app/vendor` | Anonymous volume so the image's `vendor` isn't overwritten |
 | `./storage:/app/storage` | Laravel persistent data |
 | `docker/php/Caddyfile`, `docker/php/php.ini` | Runtime configuration |
-| `caddy_data_your`, `caddy_config_your` | Caddy data and config |
+| `caddy_data_your-app`, `caddy_config_your-app` | Caddy data and config |
 
-The `:Z` option on volumes is used for SELinux (Podman/Fedora/RHEL).
+The `:Z` volume option is for SELinux systems such as Fedora and RHEL. The project bind mount means the running container uses the source tree on the host; keep that directory available and do not deploy untrusted source.
 
 ---
 
 ## Notes
 
-* The `Dockerfile` runs `composer install --no-dev --optimize-autoloader`, then sets permissions on `storage` and `bootstrap/cache`.
-* `EXPOSE` in the Dockerfile lists 80/443, but Caddy actually listens on **8000** (`auto_https off`). Use a reverse proxy (Nginx/Caddy/Traefik) in front of it for HTTPS.
+* The `Dockerfile` expects Laravel files including `composer.json`, `composer.lock`, `storage/`, and `bootstrap/cache/` in the build context. It runs `composer install --no-dev --optimize-autoloader`.
+* The app listens on **8000** with automatic HTTPS disabled. Put a TLS-terminating reverse proxy (such as Caddy, Nginx, or Traefik) in front of it for HTTPS.
+* Do not include `.env` or other secrets in the Docker build context or commit them to source control. Add a `.dockerignore` in the Laravel project root to exclude `.env`, `.git`, `vendor`, and `node_modules`.
 
 ---
 
