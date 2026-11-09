@@ -181,7 +181,8 @@ The `:Z` volume option is for SELinux systems such as Fedora and RHEL. The proje
 
 ## Notes
 
-* The `Dockerfile` expects Laravel files including `composer.json`, `composer.lock`, `storage/`, and `bootstrap/cache/` in the build context. It runs `composer install --no-dev --optimize-autoloader`.
+* The `Dockerfile` expects Laravel files including `composer.json`, `composer.lock`, `storage/`, and `bootstrap/cache/` in the build context. It installs production dependencies with `composer install --no-dev --optimize-autoloader`; this image is intended for production, not local development that needs Composer development dependencies.
+* The Dockerfile copies the application source before installing Composer dependencies. As a result, changing application files invalidates the Composer install layer and can make subsequent image builds take longer.
 * The app listens on **8000** with automatic HTTPS disabled. Put a TLS-terminating reverse proxy (such as Caddy, Nginx, or Traefik) in front of it for HTTPS.
 * Do not include `.env` or other secrets in the Docker build context or commit them to source control. Add a `.dockerignore` in the Laravel project root to exclude `.env`, `.git`, `vendor`, and `node_modules`.
 

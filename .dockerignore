@@ -1,0 +1,9 @@
+vendor
+node_modules
+bootstrap/cache/*.php
+storage/*.key
+.env*
+!.env.example
+.git
+.gitignore
+docker-compose.yaml
