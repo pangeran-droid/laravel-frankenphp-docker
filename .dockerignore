@@ -1,9 +1,31 @@
-vendor
-node_modules
-bootstrap/cache/*.php
-storage/*.key
-.env*
-!.env.example
 .git
 .gitignore
-docker-compose.yaml
+.gitattributes
+.github
+.idea
+.vscode
+
+# Secrets: passed at runtime with env_file / --env-file, never baked into the image
+.env
+.env.*
+!.env.example
+
+# Rebuilt inside the image
+node_modules
+vendor
+public/build
+public/hot
+public/storage
+
+# Runtime data
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/framework/testing/*
+
+# Not needed in production
+tests
+scripts
+docker-compose*.yaml
+*.md

@@ -1,11 +1,39 @@
 {
-    frankenphp
     auto_https off
+
+    frankenphp {
+        worker {
+            file ./public/frankenphp-worker.php
+            num 2
+        }
+    }
+
     order php_server before file_server
+
+    servers {
+        # Trust X-Forwarded-* from a reverse proxy on a private network.
+        trusted_proxies static private_ranges
+    }
 }
 
 :8000 {
     root * /app/public
     encode zstd gzip
+
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        X-XSS-Protection "1; mode=block"
+        -Server
+    }
+
+    # Never serve dotfiles (.env, .git, ...), except /.well-known/
+    @dotfiles {
+        path_regexp dotfiles /\.
+        not path /.well-known/*
+    }
+    respond @dotfiles 404
+
     php_server
 }

@@ -21,9 +21,12 @@ COPY --from=composer-stage /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-autoloader
+
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader
+RUN composer dump-autoload --optimize --no-dev
 
 RUN chown -R www-data:www-data /app \
     && chmod -R 775 storage bootstrap/cache

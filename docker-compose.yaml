@@ -14,11 +14,11 @@ services:
       - ./storage:/app/storage:Z
       - ./docker/php/Caddyfile:/etc/caddy/Caddyfile:Z
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-custom.ini:Z
-      - caddy_data_your-app:/data
-      - caddy_config_your-app:/config
+      - caddy_data:/data
+      - caddy_config:/config
 
 volumes:
-  caddy_data_your-app:
+  caddy_data:
     driver: local
-  caddy_config_your-app:
+  caddy_config:
     driver: local

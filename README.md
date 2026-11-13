@@ -36,7 +36,7 @@
 | PHP | 8.4 (Alpine Linux) |
 | Web server & app server | FrankenPHP (Caddy-based) |
 | Frontend assets | Pre-built (`public/build`) |
-| Container tool | Podman (`scripts/run.sh`) or Docker Compose (`docker-compose.yaml`) |
+| Container tool | Podman (`scripts/deploy.sh`) or Docker Compose (`docker-compose.yaml`) |
 | PHP extensions | `pdo_mysql`, `mbstring`, `exif`, `pcntl`, `bcmath`, `gd`, `zip`, `intl`, `opcache`, `redis` |
 
 ---
@@ -52,11 +52,9 @@ This repository is a set of deployment files, not a complete Laravel application
 │       ├── Caddyfile         # Caddy for production (port 8000, root /app/public)
 │       ├── Dockerfile        # FrankenPHP + Composer image (multi-stage)
 │       └── php.ini           # PHP & OPcache customization (production)
-├── php/
-│   └── Caddyfile             # Caddy for development (Octane worker mode)
 ├── scripts/
 │   ├── dev.sh                # Local development script (Vite + Octane)
-│   └── run.sh                # Build & deploy script using Podman
+│   └── deploy.sh                # Build & deploy script using Podman
 ├── docker-compose.yaml       # Alternative deployment with Docker Compose
 └── README.md
 ```
@@ -75,7 +73,7 @@ public/
 
 * An existing Laravel project with PHP and Composer available locally.
 * [Laravel Octane](https://laravel.com/docs/octane) and FrankenPHP server support for local development.
-* Podman for `scripts/run.sh`, or Docker with the Docker Compose plugin for the Compose option.
+* Podman for `scripts/deploy.sh`, or Docker with the Docker Compose plugin for the Compose option.
 * Node.js and npm on the development machine.
 * A populated `public/build` directory committed with the application for production.
 
@@ -116,10 +114,15 @@ The script starts Vite and Laravel Octane with FrankenPHP on port **8000**. Keep
 
 ### Option B: Production with Podman
 
+Run the vendor's dependency installation:
+```bash
+composer install --optimize-autoloader --no-dev
+```
+
 Run this from the Laravel project root on a Linux host with Podman installed. The host does not need Node.js, but `public/build` must already exist in the project.
 
 ```bash
-./scripts/run.sh
+./scripts/deploy.sh
 ```
 
 This script will:
@@ -161,9 +164,9 @@ PHP settings used in both modes:
 
 Replace the `your-app` placeholder so it doesn't conflict with other projects:
 
-* `scripts/run.sh`: container name and image name
+* `scripts/deploy.sh`: container name and image name
 * `docker-compose.yaml`: `container_name`
-* `docker-compose.yaml` and `scripts/run.sh`: Caddy data/config volume names, if you want to keep each project's Caddy state separate
+* `docker-compose.yaml` and `scripts/deploy.sh`: Caddy data/config volume names, if you want to keep each project's Caddy state separate
 
 ### Volumes used
 
